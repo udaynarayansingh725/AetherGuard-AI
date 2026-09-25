@@ -1,13 +1,15 @@
-# 🛡️ SentinelAI: AI-Powered Cyber Threat Detection & SOC Analysis Platform
+# 🛡️ AetherGuard AI: Enterprise SOC Cyber Threat Detection Platform
 
-[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue?logo=python&logoColor=white)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.40%2B-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-brightgreen?logo=github&logoColor=white)](https://udaynarayansingh725.github.io/AetherGuard-AI/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.4%2B-F7931E?logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
-[![MITRE ATT&CK](https://img.shields.io/badge/MITRE-ATT%26CK%20v14-red)](https://attack.mitre.org/)
 [![Status](https://img.shields.io/badge/Status-Active%20%2F%20Production%20Ready-success)](#)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](#)
+[![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20Windows%20%7C%20Linux-lightgrey)](#)
 
-> **SentinelAI** is an enterprise-grade, end-to-end Cyber Threat Detection and Security Operations Center (SOC) platform. It merges **Supervised Machine Learning**, **Unsupervised Zero-Day Anomaly Detection**, **Explainable AI (XAI)**, **Global Threat Intelligence**, and **Automated SOAR Firewall Containment** into a unified, interactive security suite.
+> **AetherGuard AI** is an enterprise-grade, end-to-end Cyber Threat Detection and Security Operations Center (SOC) platform. It merges **Scikit-Learn Isolation Forest Anomaly Detection**, **Explainable AI (XAI)**, **Global Threat Intelligence**, and **Automated SOAR Firewall Containment** into a unified, interactive security suite.
+>
+> 🌐 **Live Web Application:** [https://udaynarayansingh725.github.io/AetherGuard-AI/](https://udaynarayansingh725.github.io/AetherGuard-AI/)
 
 ---
 
