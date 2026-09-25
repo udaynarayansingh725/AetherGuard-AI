@@ -13,7 +13,7 @@ if backend_dir not in sys.path:
 if __name__ == "__main__" and (__package__ is None or __package__ == ""):
     import uvicorn
     print("=" * 60)
-    print(" Starting AetherGuard AI SOC FastAPI & ML Backend")
+    print(" Starting ThreatLen AI SOC FastAPI & ML Backend")
     print(" Endpoint: http://127.0.0.1:8000")
     print(" Swagger Docs: http://127.0.0.1:8000/docs")
     print("=" * 60)
@@ -52,7 +52,7 @@ except ImportError:
 init_db()
 
 app = FastAPI(
-    title="AetherGuard AI SOC Backend",
+    title="ThreatLen AI SOC Backend",
     description="Enterprise AI Threat Detection & Isolation Forest ML Telemetry Pipeline",
     version="3.4-e"
 )

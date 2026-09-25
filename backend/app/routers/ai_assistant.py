@@ -37,7 +37,7 @@ async def query_ai(request: AIQueryRequest):
         ]
     elif "high risk" in prompt or "critical" in prompt:
         answer = (
-            "AetherGuard currently tracks 2 Critical incidents and 755 high-risk log anomalies in the 24-hour buffer. "
+            "ThreatLen AI currently tracks 2 Critical incidents and 755 high-risk log anomalies in the 24-hour buffer. "
             "Critical entities: THR-9021 (192.168.1.50 SSH Brute Force) and THR-9022 (10.0.12.88 Volumetric Gateway Flooding)."
         )
         recommendations = [
@@ -67,7 +67,7 @@ async def query_ai(request: AIQueryRequest):
         ]
     else:
         answer = (
-            f"AetherGuard AI SOC Engine evaluated telemetry regarding '{request.prompt}'. "
+            f"ThreatLen AI SOC Engine evaluated telemetry regarding '{request.prompt}'. "
             "Telemetry shows stable background traffic across production nodes. Isolation Forest model is healthy with zero backlog."
         )
         recommendations = [

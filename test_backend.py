@@ -43,7 +43,7 @@ def test_all():
     r = client.get("/api/v1/threats/THR-9021/report")
     assert r.status_code == 200
     assert "192.168.1.50" in r.text
-    assert "AETHERGUARD AI - SOC THREAT INCIDENT REPORT" in r.text
+    assert "THREATLEN AI - SOC THREAT INCIDENT REPORT" in r.text
     print("[OK] Single Threat IP Forensic Report Download OK")
 
     print("\n--- 4. Testing GET /api/v1/incidents ---")

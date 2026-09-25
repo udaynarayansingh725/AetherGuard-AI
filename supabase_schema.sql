@@ -1,5 +1,5 @@
 -- ==============================================================================
--- AETHERGUARD AI - SUPABASE CLOUD DATABASE SCHEMA & INITIALIZATION
+-- THREATLEN AI - SUPABASE CLOUD DATABASE SCHEMA & INITIALIZATION
 -- Run this script in the Supabase SQL Editor (Dashboard -> SQL Editor -> New Query)
 -- ==============================================================================
 
@@ -130,7 +130,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Baseline Audit Log
 INSERT INTO public.audit_logs (action, details, user_id, timestamp)
-VALUES ('SYSTEM_BOOT', 'AetherGuard AI Cloud Telemetry connected to Supabase PostgreSQL.', 'SYSTEM', to_char(now(), 'YYYY-MM-DD HH24:MI:SS'));
+VALUES ('SYSTEM_BOOT', 'ThreatLen AI Cloud Telemetry connected to Supabase PostgreSQL.', 'SYSTEM', to_char(now(), 'YYYY-MM-DD HH24:MI:SS'));
 
 -- Baseline Default Settings
 INSERT INTO public.settings (key, value, updated_at)

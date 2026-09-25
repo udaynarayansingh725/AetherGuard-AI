@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AetherGuard AI - IBM SOC Threat Shield</title>
+  <title>ThreatLen AI - Enterprise SOC Threat Shield</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -372,11 +372,11 @@ const FastAPI_Service = {
     // Local fallback
     return new Promise((resolve) => {
       setTimeout(() => {
-        let answer = "AetherGuard AI has analyzed your request against current telemetry.";
+        let answer = "ThreatLen AI has analyzed your request against current telemetry.";
         if (prompt.toLowerCase().includes("brute force") || prompt.toLowerCase().includes("192.168.1.50")) {
           answer = "IP 192.168.1.50 triggered high risk due to 147 failed SSH logins across 18 unique root accounts in under 120 seconds. Anomaly Score: 0.94 (Threshold: 0.70). Recommended action: Immediate IP quarantine on firewall boundary.";
         } else if (prompt.toLowerCase().includes("recent") || prompt.toLowerCase().includes("summary")) {
-          answer = "Over the last 24 hours, AetherGuard processed 12,540 logs. Detected 755 high-risk anomalies, dominated by SSH Brute Force attempts (420) and Internal Port Scans (210).";
+          answer = "Over the last 24 hours, ThreatLen AI processed 12,540 logs. Detected 755 high-risk anomalies, dominated by SSH Brute Force attempts (420) and Internal Port Scans (210).";
         } else if (prompt.toLowerCase().includes("high-risk") || prompt.toLowerCase().includes("high risk")) {
           answer = "There are currently 2 active Critical incidents: INC-2026-00421 (Brute force from 192.168.1.50) and INC-2026-00419 (HTTP Flood from 10.0.12.88). Both require analyst clearance.";
         } else {
@@ -429,7 +429,7 @@ function downloadThreatInvestigationReport(threat) {
         : `Isolation Forest algorithm detected an anomaly score of ${threat.anomalyScore} (Risk: ${threat.risk}) for source ${threat.sourceIp} targeting ${threat.destIp} on port ${threat.port} with ${threat.requests} requests.`;
 
       const report = `================================================================================
-                AETHERGUARD AI - SOC THREAT INCIDENT REPORT
+                THREATLEN AI - SOC THREAT INCIDENT REPORT
 ================================================================================
 Incident Reference ID : ${threat.id}
 Target Source IP      : ${threat.sourceIp}
@@ -462,7 +462,7 @@ ${explanation}
 3. Apply rate-limiting policy on Port ${threat.port} (${threat.protocol}).
 4. Review host telemetry for lateral movement indicators.
 ================================================================================
-CONFIDENTIAL - AUTHORIZED SOC PERSONNEL ONLY - AETHERGUARD AI
+CONFIDENTIAL - AUTHORIZED SOC PERSONNEL ONLY - THREATLEN AI
 ================================================================================`;
       triggerBrowserDownload(`Threat_Report_${threat.sourceIp.replace(/\./g, '_')}_${threat.id}.txt`, report, 'text/plain;charset=utf-8');
     });
@@ -479,7 +479,7 @@ function downloadAllThreatsReport(threats) {
     })
     .then(csvText => {
       const nowStr = new Date().toISOString().slice(0, 10);
-      triggerBrowserDownload(`AetherGuard_Threats_Report_${nowStr}.csv`, csvText, 'text/csv;charset=utf-8');
+      triggerBrowserDownload(`ThreatLen_Threats_Report_${nowStr}.csv`, csvText, 'text/csv;charset=utf-8');
     })
     .catch(() => {
       const headers = ["id", "sourceIp", "destIp", "port", "protocol", "requests", "failedLogins", "anomalyScore", "threatType", "risk", "status", "timestamp", "accountsTargeted", "country", "targetService"];
@@ -503,7 +503,7 @@ function downloadAllThreatsReport(threats) {
       
       const csv = [headers.join(","), ...rows].join("\n");
       const nowStr = new Date().toISOString().slice(0, 10);
-      triggerBrowserDownload(`AetherGuard_Threats_Report_${nowStr}.csv`, csv, 'text/csv;charset=utf-8');
+      triggerBrowserDownload(`ThreatLen_Threats_Report_${nowStr}.csv`, csv, 'text/csv;charset=utf-8');
     });
 }
 
@@ -515,7 +515,7 @@ function downloadExecutiveReport(customData) {
   const summary = customData?.executiveSummary || "Executive report summarizing security log telemetry and anomalous deviations.";
 
   const content = `================================================================================
-         AETHERGUARD AI - EXECUTIVE THREAT INTELLIGENCE REPORT
+         THREATLEN AI - EXECUTIVE THREAT INTELLIGENCE REPORT
 ================================================================================
 Report Reference ID : ${repId}
 Generated At        : ${now}
@@ -556,7 +556,7 @@ function App() {
   const [lastAnalysis, setLastAnalysis] = useState(null);
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
   const [aiMessages, setAiMessages] = useState([
-    { sender: 'ai', text: 'Welcome to AetherGuard AI SOC Assistant. FastAPI backend is integrated. How can I assist with threat triage today?' }
+    { sender: 'ai', text: 'Welcome to ThreatLen AI SOC Assistant. FastAPI backend is integrated. How can I assist with threat triage today?' }
   ]);
   const [aiInput, setAiInput] = useState('');
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -738,8 +738,8 @@ function Sidebar({ activePage, setActivePage, onLogout }) {
             <Shield className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="font-bold text-base tracking-wide text-white leading-tight">AetherGuard <span className="text-cyan-400 font-semibold text-xs px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-800/50 ml-1">AI</span></h1>
-            <p className="text-[10px] text-slate-400 font-mono tracking-wider">IBM SOC THREAT SHIELD</p>
+            <h1 className="font-bold text-base tracking-wide text-white leading-tight">ThreatLen <span className="text-cyan-400 font-semibold text-xs px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-800/50 ml-1">AI</span></h1>
+            <p className="text-[10px] text-slate-400 font-mono tracking-wider">ENTERPRISE SOC THREAT SHIELD</p>
           </div>
         </div>
 
@@ -2006,8 +2006,8 @@ function SettingsView({ onUpdateEndpoint, userRole = 'Security Analyst', setUser
   const [pingState, setPingState] = useState(null);
 
   // Supabase Cloud Configuration
-  const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('aetherguard_supabase_url') || '');
-  const [supabaseKey, setSupabaseKey] = useState(() => localStorage.getItem('aetherguard_supabase_key') || '');
+  const [supabaseUrl, setSupabaseUrl] = useState(() => localStorage.getItem('threatlen_supabase_url') || '');
+  const [supabaseKey, setSupabaseKey] = useState(() => localStorage.getItem('threatlen_supabase_key') || '');
   const [supabaseTesting, setSupabaseTesting] = useState(false);
   const [supabaseFeedback, setSupabaseFeedback] = useState(null);
 
@@ -2028,8 +2028,8 @@ function SettingsView({ onUpdateEndpoint, userRole = 'Security Analyst', setUser
   };
 
   const handleSaveSupabase = async () => {
-    localStorage.setItem('aetherguard_supabase_url', supabaseUrl);
-    localStorage.setItem('aetherguard_supabase_key', supabaseKey);
+    localStorage.setItem('threatlen_supabase_url', supabaseUrl);
+    localStorage.setItem('threatlen_supabase_key', supabaseKey);
     await handleTestSupabase();
     setSavedToast(true);
     setTimeout(() => setSavedToast(false), 3000);
@@ -2038,7 +2038,7 @@ function SettingsView({ onUpdateEndpoint, userRole = 'Security Analyst', setUser
   // 1. User Profile State (persisted in localStorage)
   const [profile, setProfile] = useState(() => {
     try {
-      const saved = localStorage.getItem('aetherguard_profile');
+      const saved = localStorage.getItem('threatlen_profile');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return {
@@ -2061,7 +2061,7 @@ function SettingsView({ onUpdateEndpoint, userRole = 'Security Analyst', setUser
   // 2. Alert & Notification Preferences
   const [alerts, setAlerts] = useState(() => {
     try {
-      const saved = localStorage.getItem('aetherguard_alerts');
+      const saved = localStorage.getItem('threatlen_alerts');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return {
@@ -2078,7 +2078,7 @@ function SettingsView({ onUpdateEndpoint, userRole = 'Security Analyst', setUser
   // 3. Detection Engine & SOAR Rules
   const [detection, setDetection] = useState(() => {
     try {
-      const saved = localStorage.getItem('aetherguard_detection');
+      const saved = localStorage.getItem('threatlen_detection');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return {
@@ -2095,7 +2095,7 @@ function SettingsView({ onUpdateEndpoint, userRole = 'Security Analyst', setUser
   // 4. Display & Report Preferences
   const [reportPrefs, setReportPrefs] = useState(() => {
     try {
-      const saved = localStorage.getItem('aetherguard_report_prefs');
+      const saved = localStorage.getItem('threatlen_report_prefs');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return {
@@ -2113,10 +2113,10 @@ function SettingsView({ onUpdateEndpoint, userRole = 'Security Analyst', setUser
   // Save All Changes
   const handleSaveAll = () => {
     try {
-      localStorage.setItem('aetherguard_profile', JSON.stringify(profile));
-      localStorage.setItem('aetherguard_alerts', JSON.stringify(alerts));
-      localStorage.setItem('aetherguard_detection', JSON.stringify(detection));
-      localStorage.setItem('aetherguard_report_prefs', JSON.stringify(reportPrefs));
+      localStorage.setItem('threatlen_profile', JSON.stringify(profile));
+      localStorage.setItem('threatlen_alerts', JSON.stringify(alerts));
+      localStorage.setItem('threatlen_detection', JSON.stringify(detection));
+      localStorage.setItem('threatlen_report_prefs', JSON.stringify(reportPrefs));
       if (onUpdateEndpoint) onUpdateEndpoint(apiUrl);
       if (setUserRole && profile.role) setUserRole(profile.role);
     } catch (e) {
@@ -2447,7 +2447,7 @@ function SettingsView({ onUpdateEndpoint, userRole = 'Security Analyst', setUser
             </div>
             <button
               onClick={() => {
-                const schema = `-- AetherGuard AI Supabase Schema
+                const schema = `-- ThreatLen AI Supabase Schema
 CREATE TABLE IF NOT EXISTS public.users (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL, password_hash TEXT, role TEXT NOT NULL DEFAULT 'Security Analyst', status TEXT DEFAULT 'Active', last_login TEXT, avatar TEXT, created_at TEXT DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'));
 CREATE TABLE IF NOT EXISTS public.threats (id TEXT PRIMARY KEY, source_ip TEXT NOT NULL, dest_ip TEXT NOT NULL, port INTEGER NOT NULL, protocol TEXT NOT NULL, requests INTEGER NOT NULL, failed_logins INTEGER NOT NULL, anomaly_score NUMERIC(5,2) NOT NULL, threat_type TEXT NOT NULL, risk TEXT NOT NULL, timestamp TEXT NOT NULL, status TEXT DEFAULT 'Active', accounts_targeted INTEGER DEFAULT 1, country TEXT DEFAULT 'EXTERNAL', target_service TEXT DEFAULT 'Unknown');
 CREATE TABLE IF NOT EXISTS public.incidents (id TEXT PRIMARY KEY, title TEXT NOT NULL, severity TEXT NOT NULL, status TEXT DEFAULT 'Open', assigned_to TEXT DEFAULT 'AI Auto-Task', events_count INTEGER DEFAULT 1, source_ip TEXT DEFAULT 'Unknown', summary TEXT, created_at TEXT DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'));
@@ -2940,10 +2940,10 @@ CREATE POLICY "Allow public access to settings" ON public.settings FOR ALL USING
             <button 
               onClick={() => {
                 if (window.confirm("Are you sure you want to restore default settings?")) {
-                  localStorage.removeItem('aetherguard_profile');
-                  localStorage.removeItem('aetherguard_alerts');
-                  localStorage.removeItem('aetherguard_detection');
-                  localStorage.removeItem('aetherguard_report_prefs');
+                  localStorage.removeItem('threatlen_profile');
+                  localStorage.removeItem('threatlen_alerts');
+                  localStorage.removeItem('threatlen_detection');
+                  localStorage.removeItem('threatlen_report_prefs');
                   window.location.reload();
                 }
               }}
@@ -2965,7 +2965,7 @@ function AIAssistantDrawer({ onClose, messages, input, setInput, onSend, isProce
       <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-cyan-400 animate-spin-slow" />
-          <h3 className="text-sm font-bold text-slate-200">AetherGuard AI SOC Assistant</h3>
+          <h3 className="text-sm font-bold text-slate-200">ThreatLen AI SOC Assistant</h3>
         </div>
         <button onClick={onClose} className="p-1 text-slate-400 hover:text-white rounded">
           <X className="w-4 h-4" />

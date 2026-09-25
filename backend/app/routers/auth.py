@@ -28,7 +28,7 @@ async def login(request: LoginRequest):
     
     return LoginResponse(
         status="success",
-        access_token=f"aetherguard_jwt_{user_record['id']}_auth_token",
+        access_token=f"threatlen_jwt_{user_record['id']}_auth_token",
         token_type="bearer",
         user=user_profile
     )

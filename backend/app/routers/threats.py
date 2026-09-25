@@ -25,7 +25,7 @@ async def export_threats_csv():
     return Response(
         content=csv_content,
         media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=aetherguard_threats_export.csv"}
+        headers={"Content-Disposition": "attachment; filename=threatlen_threats_export.csv"}
     )
 
 @router.get("/{threat_id}", response_model=Threat)
@@ -44,7 +44,7 @@ async def export_threat_report(threat_id: str):
         raise HTTPException(status_code=404, detail=f"Threat {threat_id} not found")
 
     report_text = f"""================================================================================
-                AETHERGUARD AI - SOC THREAT INCIDENT REPORT
+                THREATLEN AI - SOC THREAT INCIDENT REPORT
 ================================================================================
 Incident Reference ID : {threat['id']}
 Target Source IP      : {threat['sourceIp']}
@@ -75,7 +75,7 @@ Pattern matches signature: {threat['threatType']}.
 3. Review audit logs for lateral movement within destination host {threat['destIp']}.
 4. Enforce strict rate-limiting on port {threat['port']}.
 ================================================================================
-CONFIDENTIAL - AUTHORIZED SOC PERSONNEL ONLY - AETHERGUARD AI
+CONFIDENTIAL - AUTHORIZED SOC PERSONNEL ONLY - THREATLEN AI
 ================================================================================
 """
     filename = f"Threat_Report_{threat['sourceIp'].replace('.', '_')}_{threat['id']}.txt"

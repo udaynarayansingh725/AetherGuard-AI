@@ -1,4 +1,4 @@
-# 🛡️ AetherGuard AI: Enterprise SOC Cyber Threat Detection Platform
+# 🛡️ ThreatLen AI: Enterprise SOC Cyber Threat Detection Platform
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-brightgreen?logo=github&logoColor=white)](https://udaynarayansingh725.github.io/AetherGuard-AI/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -9,7 +9,7 @@
 [![Status](https://img.shields.io/badge/Status-Fully%20Functional%20%2F%20Production%20Ready-success)](#)
 [![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)](#)
 
-> **AetherGuard AI** is a fully functional, enterprise-grade Cyber Threat Detection and Security Operations Center (SOC) platform. It seamlessly wires together an interactive **React 18 frontend**, a high-performance **FastAPI asynchronous backend**, an unsupervised **Scikit-Learn Isolation Forest ML engine**, and **Supabase Cloud Database (PostgreSQL)** as primary persistence with automatic local **SQLite fallback**.
+> **ThreatLen AI** is a fully functional, enterprise-grade Cyber Threat Detection and Security Operations Center (SOC) platform. It seamlessly wires together an interactive **React 18 frontend**, a high-performance **FastAPI asynchronous backend**, an unsupervised **Scikit-Learn Isolation Forest ML engine**, and **Supabase Cloud Database (PostgreSQL)** as primary persistence with automatic local **SQLite fallback**.
 >
 > 🌐 **Live Web Application (GitHub Pages):** [https://udaynarayansingh725.github.io/AetherGuard-AI/](https://udaynarayansingh725.github.io/AetherGuard-AI/)  
 > 📖 **Interactive API Documentation (Swagger):** `http://127.0.0.1:8000/docs`
@@ -72,7 +72,7 @@ flowchart TD
             SUPA_SETTINGS[("public.settings")]
         end
         subgraph LocalDB ["💻 Resilient Fallback: Local SQLite 3"]
-            SQLITE_DB[("aetherguard.db (Offline / Zero-Config)")]
+            SQLITE_DB[("threatlen.db (Offline / Zero-Config)")]
         end
     end
 
@@ -98,7 +98,7 @@ flowchart TD
 
 ## 🔌 How Frontend, Backend & Database Are Wired
 
-Every tier in **AetherGuard AI** is connected and synchronized:
+Every tier in **ThreatLen AI** is connected and synchronized:
 
 1. **Frontend &rarr; Backend**:
    - The React frontend (`FastAPI_Service`) dynamically detects whether it is running on `localhost` or hosted on GitHub Pages.
@@ -114,7 +114,7 @@ Every tier in **AetherGuard AI** is connected and synchronized:
 3. **Backend &rarr; Supabase Cloud Database (with SQLite Fallback)**:
    - Primary database operations are performed via `backend/app/db/supabase_client.py` using official Supabase Python client SDK.
    - If Supabase credentials are provided (`SUPABASE_URL` & `SUPABASE_KEY`), all reads and writes target the cloud PostgreSQL database.
-   - If cloud credentials are unset or the cloud is unreachable, the system automatically falls back to local SQLite (`backend/app/data/aetherguard.db`) without crashing or dropping user requests.
+   - If cloud credentials are unset or the cloud is unreachable, the system automatically falls back to local SQLite (`backend/app/data/threatlen.db`) without crashing or dropping user requests.
    - When users register or log in, their profiles are authenticated directly against `users`.
    - When an analyst clicks **"Quarantine & Firewall DROP"**, a `POST /api/v1/threats/{id}/mitigate` request updates the status in the primary database and records an entry in `audit_logs`.
 
@@ -122,7 +122,7 @@ Every tier in **AetherGuard AI** is connected and synchronized:
 
 ## ☁️ Supabase Cloud Primary Database Setup
 
-AetherGuard AI uses **Supabase Cloud (PostgreSQL)** as its primary database. Follow these steps to connect your cloud database:
+ThreatLen AI uses **Supabase Cloud (PostgreSQL)** as its primary database. Follow these steps to connect your cloud database:
 
 ### Option A: Configuration via `.env` File (Recommended for Production)
 
@@ -148,7 +148,7 @@ AetherGuard AI uses **Supabase Cloud (PostgreSQL)** as its primary database. Fol
 
 ### Option B: Real-Time Configuration via UI (No Server Restart Needed)
 
-1. Open AetherGuard AI in your browser (`http://127.0.0.1:8000/`).
+1. Open ThreatLen AI in your browser (`http://127.0.0.1:8000/`).
 2. Navigate to **Settings** &rarr; click on the **Cloud Database (Supabase)** tab.
 3. Enter your **Supabase Project URL** and **API Key**.
 4. Click **Connect & Verify Supabase Cloud**. The backend will immediately test the connection, verify tables, and switch the live primary engine.
@@ -229,7 +229,7 @@ The schema is defined in `supabase_schema.sql` (PostgreSQL) and mirrored in SQLi
 - **Explainable AI (XAI)**: Generates human-readable explanations detailing baseline breaches (e.g. "Failed logins exceeded baseline by 70x").
 - **IP Forensic Dossier & Report Export**:
   - **Single IP Report**: Generates and downloads detailed forensic investigation reports (`.txt`) for any selected IP.
-  - **All Threats Export**: 1-click export of all detected threats as standard tabular CSV.
+  - **All Threats Export**: 1-click export of all detected threats as standard tabular CSV (`threatlen_threats_export.csv`).
   - **Executive Reports**: Generates formal compliance audit summaries (`.txt`).
 - **SOAR Automated Mitigation**: Instantly quarantine offending IPs with 1 click, pushing a firewall DROP status into the cloud database.
 - **AI SOC Assistant Drawer**: Interactive slide-out conversational drawer (`Ctrl+K`) for rapid threat reasoning and contextual triage.
@@ -265,7 +265,7 @@ The FastAPI backend exposes clean, fully documented REST endpoints:
 
 ### Threat Intelligence & SOAR
 - `GET /api/v1/threats` &rarr; Retrieves threats with optional `?risk=` and `?search=` filters.
-- `GET /api/v1/threats/export` &rarr; Downloads all threats as an attachment CSV file (`aetherguard_threats_export.csv`).
+- `GET /api/v1/threats/export` &rarr; Downloads all threats as an attachment CSV file (`threatlen_threats_export.csv`).
 - `GET /api/v1/threats/{threat_id}` &rarr; Retrieves single threat telemetry by ID or IP address.
 - `GET /api/v1/threats/{threat_id}/report` &rarr; Generates and downloads a forensic investigation dossier (`.txt`) for the given threat.
 - `POST /api/v1/threats/{threat_id}/mitigate` &rarr; Quarantines the threat in the database and logs a SOAR firewall audit trail.
@@ -291,7 +291,7 @@ The FastAPI backend exposes clean, fully documented REST endpoints:
 ## 📂 Project Directory Structure
 
 ```
-AetherGuard/
+ThreatLen-AI/
 │
 ├── index.html                   # Root UI entry point for GitHub Pages
 ├── requirements.txt             # Full Python backend dependencies
@@ -315,7 +315,7 @@ AetherGuard/
         │   └── database.py      # Unified DB layer (Supabase primary + SQLite fallback)
         │
         ├── data/                # Data & Local SQLite Fallback
-        │   ├── aetherguard.db   # Local fallback SQLite database file
+        │   ├── threatlen.db     # Local fallback SQLite database file
         │   └── sample_network_logs.csv # Benchmark sample CSV for log ingestion
         │
         ├── ml/                  # Machine Learning Engine
@@ -373,7 +373,7 @@ python run_backend.py
 
 ## 🧪 Automated Testing & Verification
 
-AetherGuard AI includes an automated test script (`test_backend.py`) that performs 11 comprehensive tests across frontend serving, API endpoints, ML inference, and database persistence.
+ThreatLen AI includes an automated test script (`test_backend.py`) that performs 11 comprehensive tests across frontend serving, API endpoints, ML inference, and database persistence.
 
 To execute the test suite:
 ```bash
@@ -412,7 +412,7 @@ python test_backend.py
   Flagged threats: 6 persisted to database
 
 --- 7. Testing POST /api/v1/reports/generate ---
-[OK] Report Generation OK: REP-202609252057
+[OK] Report Generation OK: REP-202609252119
 
 --- 8. Testing POST /api/v1/auth/login ---
 [OK] Auth Login OK: Dr. Elena Vance (Lead SOC Analyst)
@@ -435,7 +435,7 @@ python test_backend.py
 
 ## 🌐 Dual Deployment Modes
 
-AetherGuard AI is engineered to work in two flexible deployment configurations:
+ThreatLen AI is engineered to work in two flexible deployment configurations:
 
 1. **Full-Stack Enterprise Mode (Supabase Cloud + FastAPI + Scikit-Learn)**:
    - Backend runs via `python run_backend.py` on `http://127.0.0.1:8000`.
@@ -457,7 +457,7 @@ AetherGuard AI is engineered to work in two flexible deployment configurations:
 > 3. The Topbar indicator will switch to **DB: Supabase Cloud**.
 
 #### Q: What happens if Supabase is offline or not configured yet?
-> **Answer:** Zero downtime. AetherGuard AI automatically detects if Supabase credentials are missing or unreachable, and seamlessly falls back to the embedded SQLite database (`backend/app/data/aetherguard.db`). All queries, log ingestion, and mitigation actions continue working normally.
+> **Answer:** Zero downtime. ThreatLen AI automatically detects if Supabase credentials are missing or unreachable, and seamlessly falls back to the embedded SQLite database (`backend/app/data/threatlen.db`). All queries, log ingestion, and mitigation actions continue working normally.
 
 #### Q: How can I download a threat report?
 > **Answer:** 

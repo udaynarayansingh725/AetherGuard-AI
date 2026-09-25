@@ -5,7 +5,7 @@ from typing import List, Dict, Any, Optional
 from . import supabase_client as sbc
 
 DB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-DB_PATH = os.path.join(DB_DIR, "aetherguard.db")
+DB_PATH = os.path.join(DB_DIR, "threatlen.db")
 
 def get_connection():
     os.makedirs(DB_DIR, exist_ok=True)
@@ -161,7 +161,7 @@ def _seed_initial_data(conn):
     if cursor.fetchone()[0] == 0:
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cursor.execute("INSERT INTO audit_logs (action, details, user_id, timestamp) VALUES (?, ?, ?, ?)",
-                       ("SYSTEM_BOOT", "AetherGuard AI SOC Database initialized successfully.", "SYSTEM", now))
+                       ("SYSTEM_BOOT", "ThreatLen AI SOC Database initialized successfully.", "SYSTEM", now))
 
     conn.commit()
 
