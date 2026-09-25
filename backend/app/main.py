@@ -68,6 +68,8 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(logs_router, prefix="/api/v1")
 app.include_router(threats_router, prefix="/api/v1")
 app.include_router(incidents_router, prefix="/api/v1")
+app.include_router(ai_router, prefix="/api/v1")
+app.include_router(reports_router, prefix="/api/v1")
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException

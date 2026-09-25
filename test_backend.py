@@ -13,7 +13,8 @@ def test_all():
     print("\n--- 1. Testing GET / ---")
     r = client.get("/")
     assert r.status_code == 200, f"Root failed: {r.text}"
-    print("[OK] Root OK:", r.json()["service"])
+    assert "<!DOCTYPE html>" in r.text or "html" in r.headers.get("content-type", "")
+    print("[OK] Root UI OK: Successfully served index.html")
 
     print("\n--- 2. Testing GET /api/v1/status ---")
     r = client.get("/api/v1/status")
@@ -29,6 +30,21 @@ def test_all():
     threats = r.json()
     assert len(threats) >= 5
     print(f"[OK] Threats OK ({len(threats)} loaded)")
+
+    print("\n--- 3b. Testing GET /api/v1/threats/export (CSV Download) ---")
+    r = client.get("/api/v1/threats/export")
+    assert r.status_code == 200
+    assert "sourceIp" in r.text
+    assert "192.168.1.50" in r.text
+    assert "text/csv" in r.headers.get("content-type", "")
+    print("[OK] Threats CSV Export OK")
+
+    print("\n--- 3c. Testing GET /api/v1/threats/THR-9021/report (IP Forensic Report) ---")
+    r = client.get("/api/v1/threats/THR-9021/report")
+    assert r.status_code == 200
+    assert "192.168.1.50" in r.text
+    assert "AETHERGUARD AI - SOC THREAT INCIDENT REPORT" in r.text
+    print("[OK] Single Threat IP Forensic Report Download OK")
 
     print("\n--- 4. Testing GET /api/v1/incidents ---")
     r = client.get("/api/v1/incidents")
