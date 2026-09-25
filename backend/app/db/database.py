@@ -2,6 +2,7 @@ import os
 import sqlite3
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+from . import supabase_client as sbc
 
 DB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 DB_PATH = os.path.join(DB_DIR, "aetherguard.db")
@@ -14,10 +15,23 @@ def get_connection():
 
 def init_db():
     """Initialize database tables and seed baseline telemetry if empty."""
+    # 1. Check if Supabase Cloud is configured as Primary Database
+    if sbc.is_supabase_configured():
+        status = sbc.test_supabase_connection()
+        if status.get("connected"):
+            print(f"[Database] PRIMARY DATABASE: Supabase Cloud (Latency: {status.get('latency_ms')}ms)")
+        else:
+            print(f"[Database] PRIMARY DATABASE: Supabase (Configured, but connection pending/offline: {status.get('error')})")
+            print("[Database] Standby SQLite local engine activated as transparent fallback.")
+    else:
+        print("[Database] PRIMARY DATABASE: Supabase Cloud (Pending SUPABASE_URL / SUPABASE_KEY)")
+        print("[Database] Operating on local SQLite engine. Set SUPABASE_URL in .env to switch.")
+
+    # 2. Always maintain SQLite local standby engine
     conn = get_connection()
     cursor = conn.cursor()
 
-    # 1. Users Table
+    # Users Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
@@ -32,7 +46,7 @@ def init_db():
     );
     """)
 
-    # 2. Threats Table
+    # Threats Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS threats (
         id TEXT PRIMARY KEY,
@@ -53,7 +67,7 @@ def init_db():
     );
     """)
 
-    # 3. Incidents Table
+    # Incidents Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS incidents (
         id TEXT PRIMARY KEY,
@@ -68,7 +82,7 @@ def init_db():
     );
     """)
 
-    # 4. Audit Logs Table
+    # Audit Logs Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS audit_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,7 +93,7 @@ def init_db():
     );
     """)
 
-    # 5. Settings Table
+    # Settings Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
@@ -151,8 +165,14 @@ def _seed_initial_data(conn):
 
     conn.commit()
 
-# --- Threat Data Access Methods ---
+# --- Threat Data Access Methods (Supabase Cloud Primary with SQLite Fallback) ---
 def get_all_threats(risk: Optional[str] = None, search: Optional[str] = None) -> List[Dict[str, Any]]:
+    if sbc.is_supabase_configured():
+        try:
+            return sbc.supabase_get_all_threats(risk=risk, search=search)
+        except Exception as e:
+            print(f"[Database] Supabase get_all_threats fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     query = "SELECT * FROM threats WHERE 1=1"
@@ -194,6 +214,12 @@ def get_all_threats(risk: Optional[str] = None, search: Optional[str] = None) ->
     return result
 
 def get_threat_by_id(threat_id: str) -> Optional[Dict[str, Any]]:
+    if sbc.is_supabase_configured():
+        try:
+            return sbc.supabase_get_threat_by_id(threat_id)
+        except Exception as e:
+            print(f"[Database] Supabase get_threat_by_id fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM threats WHERE LOWER(id) = LOWER(?) OR source_ip = ?", (threat_id, threat_id))
@@ -220,6 +246,12 @@ def get_threat_by_id(threat_id: str) -> Optional[Dict[str, Any]]:
     }
 
 def add_threat(t: Dict[str, Any]) -> str:
+    if sbc.is_supabase_configured():
+        try:
+            return sbc.supabase_add_threat(t)
+        except Exception as e:
+            print(f"[Database] Supabase add_threat fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -237,6 +269,13 @@ def add_threat(t: Dict[str, Any]) -> str:
     return t["id"]
 
 def bulk_insert_threats(threats_list: List[Dict[str, Any]]):
+    if sbc.is_supabase_configured():
+        try:
+            sbc.supabase_bulk_insert_threats(threats_list)
+            return
+        except Exception as e:
+            print(f"[Database] Supabase bulk_insert_threats fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     for t in threats_list:
@@ -254,6 +293,14 @@ def bulk_insert_threats(threats_list: List[Dict[str, Any]]):
     conn.close()
 
 def mitigate_threat(threat_id: str) -> bool:
+    if sbc.is_supabase_configured():
+        try:
+            res = sbc.supabase_mitigate_threat(threat_id)
+            if res:
+                return True
+        except Exception as e:
+            print(f"[Database] Supabase mitigate_threat fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE threats SET status = 'Mitigated' WHERE LOWER(id) = LOWER(?)", (threat_id,))
@@ -266,8 +313,14 @@ def mitigate_threat(threat_id: str) -> bool:
     conn.close()
     return success
 
-# --- Incident Data Access Methods ---
+# --- Incident Data Access Methods (Supabase Cloud Primary with SQLite Fallback) ---
 def get_all_incidents() -> List[Dict[str, Any]]:
+    if sbc.is_supabase_configured():
+        try:
+            return sbc.supabase_get_all_incidents()
+        except Exception as e:
+            print(f"[Database] Supabase get_all_incidents fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM incidents ORDER BY created_at DESC")
@@ -290,6 +343,12 @@ def get_all_incidents() -> List[Dict[str, Any]]:
     return result
 
 def add_incident(inc: Dict[str, Any]) -> str:
+    if sbc.is_supabase_configured():
+        try:
+            return sbc.supabase_add_incident(inc)
+        except Exception as e:
+            print(f"[Database] Supabase add_incident fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -304,8 +363,14 @@ def add_incident(inc: Dict[str, Any]) -> str:
     conn.close()
     return inc["id"]
 
-# --- User & Auth Methods ---
+# --- User & Auth Methods (Supabase Cloud Primary with SQLite Fallback) ---
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
+    if sbc.is_supabase_configured():
+        try:
+            return sbc.supabase_get_user_by_email(email)
+        except Exception as e:
+            print(f"[Database] Supabase get_user_by_email fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email,))
@@ -324,6 +389,12 @@ def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     }
 
 def get_all_users() -> List[Dict[str, Any]]:
+    if sbc.is_supabase_configured():
+        try:
+            return sbc.supabase_get_all_users()
+        except Exception as e:
+            print(f"[Database] Supabase get_all_users fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT id, name, email, role, status, last_login, avatar FROM users")
@@ -336,6 +407,12 @@ def get_all_users() -> List[Dict[str, Any]]:
     } for r in rows]
 
 def register_user(name: str, email: str, role: str = "Security Analyst") -> Dict[str, Any]:
+    if sbc.is_supabase_configured():
+        try:
+            return sbc.supabase_register_user(name, email, role)
+        except Exception as e:
+            print(f"[Database] Supabase register_user fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     user_id = f"USR-{datetime.now().strftime('%m%d%H%M')}"
@@ -353,8 +430,15 @@ def register_user(name: str, email: str, role: str = "Security Analyst") -> Dict
         "status": "Active", "lastLogin": now, "avatar": avatar
     }
 
-# --- Settings & Audit Access ---
+# --- Settings & Telemetry Stats (Supabase Cloud Primary with SQLite Fallback) ---
 def save_setting(key: str, value: str):
+    if sbc.is_supabase_configured():
+        try:
+            sbc.supabase_save_setting(key, value)
+            return
+        except Exception as e:
+            print(f"[Database] Supabase save_setting fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -363,6 +447,12 @@ def save_setting(key: str, value: str):
     conn.close()
 
 def get_setting(key: str, default: Any = None) -> Any:
+    if sbc.is_supabase_configured():
+        try:
+            return sbc.supabase_get_setting(key, default)
+        except Exception as e:
+            print(f"[Database] Supabase get_setting fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
@@ -371,6 +461,12 @@ def get_setting(key: str, default: Any = None) -> Any:
     return r["value"] if r else default
 
 def get_db_stats() -> Dict[str, int]:
+    if sbc.is_supabase_configured():
+        try:
+            return sbc.supabase_get_stats()
+        except Exception as e:
+            print(f"[Database] Supabase get_db_stats fallback to SQLite: {e}")
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM threats")
@@ -385,3 +481,47 @@ def get_db_stats() -> Dict[str, int]:
         "incidents": incident_count,
         "users": user_count
     }
+
+def get_database_status() -> Dict[str, Any]:
+    """Returns real-time database architecture and connection telemetry."""
+    is_cfg = sbc.is_supabase_configured()
+    test_res = sbc.test_supabase_connection() if is_cfg else {"connected": False, "error": "SUPABASE_URL not configured"}
+    url, _ = sbc.get_supabase_credentials()
+    masked_url = (url[:18] + "..." + url[-8:]) if url and len(url) > 26 else (url or "Not Set")
+
+    active_provider = "Supabase Cloud" if (is_cfg and test_res.get("connected")) else "SQLite (Local Fallback)"
+
+    return {
+        "primary_database": active_provider,
+        "provider": "Supabase PostgreSQL" if (is_cfg and test_res.get("connected")) else "SQLite 3 Local Engine",
+        "supabase_configured": is_cfg,
+        "supabase_url": masked_url,
+        "supabase_connected": test_res.get("connected", False),
+        "latency_ms": test_res.get("latency_ms", 0),
+        "status_detail": (
+            f"Connected to Supabase PostgreSQL cluster ({test_res.get('latency_ms', 0)}ms roundtrip)"
+            if test_res.get("connected") else
+            ("Supabase credentials configured, but cloud instance is currently unreachable" if is_cfg else "Operating on local SQLite engine (Add SUPABASE_URL & SUPABASE_KEY to activate cloud database)")
+        )
+    }
+
+def configure_supabase_credentials(url: str, key: str) -> Dict[str, Any]:
+    """Updates Supabase credentials in memory and environment file."""
+    os.environ["SUPABASE_URL"] = url.strip()
+    os.environ["SUPABASE_KEY"] = key.strip()
+
+    # Reset cached client
+    sbc._supabase_client = None
+
+    # Write to .env in project root if possible
+    try:
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        env_path = os.path.join(project_root, ".env")
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.write(f"SUPABASE_URL={url.strip()}\n")
+            f.write(f"SUPABASE_KEY={key.strip()}\n")
+            f.write("PORT=8000\nHOST=127.0.0.1\n")
+    except Exception as e:
+        print(f"[Database] Could not write .env file: {e}")
+
+    return sbc.test_supabase_connection()

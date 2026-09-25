@@ -110,6 +110,27 @@ async def get_system_status():
         n_estimators=detector.n_estimators
     )
 
+@app.get("/api/v1/database/status", tags=["Database Telemetry"])
+async def get_db_telemetry():
+    from .db.database import get_database_status
+    return get_database_status()
+
+@app.post("/api/v1/database/configure", tags=["Database Telemetry"])
+async def configure_database(payload: dict):
+    from .db.database import configure_supabase_credentials, get_database_status
+    url = payload.get("supabase_url", "")
+    key = payload.get("supabase_key", "")
+    if not url or not key:
+        raise HTTPException(status_code=400, detail="supabase_url and supabase_key are required")
+    res = configure_supabase_credentials(url, key)
+    return {
+        "status": "success" if res.get("connected") else "warning",
+        "message": "Supabase Cloud credentials updated.",
+        "connection": res,
+        "database_status": get_database_status()
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)

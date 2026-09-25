@@ -115,10 +115,19 @@ def test_all():
     assert r_check.json()["status"] == "Mitigated"
     print("[OK] Threat Mitigation OK: THR-9021 status updated to 'Mitigated' in DB")
 
+    print("\n--- 11. Testing GET /api/v1/database/status ---")
+    r = client.get("/api/v1/database/status")
+    assert r.status_code == 200
+    db_status = r.json()
+    assert "primary_database" in db_status
+    assert "provider" in db_status
+    print(f"[OK] Database Telemetry OK: Primary is '{db_status['primary_database']}' (Provider: {db_status['provider']})")
+
     print("\n==========================================")
     print(" ALL BACKEND TESTS PASSED SUCCESSFULLY! ")
     print("==========================================\n")
 
 if __name__ == "__main__":
     test_all()
+
 
