@@ -7,6 +7,7 @@ from typing import Optional, List, Dict, Any
 from ..ml.feature_extractor import parse_log_payload
 from ..ml.isolation_forest import detector
 from ..schemas.models import LogAnalysisResponse
+from ..db import database as db
 
 router = APIRouter(tags=["Log Ingestion & Analysis"])
 
@@ -35,6 +36,11 @@ async def analyze_logs(
     results = detector.analyze_logs(df)
     execution_time_ms = int((time.time() - start_time) * 1000)
 
+    # Persist detected threats into SQLite database
+    if results.get("threats"):
+        threat_dicts = [t.model_dump() if hasattr(t, "model_dump") else t.dict() for t in results["threats"]]
+        db.bulk_insert_threats(threat_dicts)
+
     return LogAnalysisResponse(
         status="success",
         modelUsed=results["model_used"],
@@ -45,3 +51,4 @@ async def analyze_logs(
         featureImportance=results["feature_importance"],
         threats=results["threats"]
     )
+

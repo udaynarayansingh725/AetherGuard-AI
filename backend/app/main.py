@@ -26,6 +26,7 @@ from fastapi.middleware.cors import CORSMiddleware
 try:
     from .schemas.models import SystemStatus
     from .ml.isolation_forest import detector
+    from .db.database import init_db, get_db_stats
     from .routers import (
         auth_router,
         logs_router,
@@ -37,6 +38,7 @@ try:
 except ImportError:
     from app.schemas.models import SystemStatus
     from app.ml.isolation_forest import detector
+    from app.db.database import init_db, get_db_stats
     from app.routers import (
         auth_router,
         logs_router,
@@ -45,6 +47,9 @@ except ImportError:
         ai_router,
         reports_router
     )
+
+# Initialize SQLite Database on startup
+init_db()
 
 app = FastAPI(
     title="AetherGuard AI SOC Backend",
@@ -93,13 +98,14 @@ async def serve_frontend():
 @app.get("/api/v1/status", response_model=SystemStatus, tags=["Health"])
 async def get_system_status():
     uptime = int(time.time() - START_TIME)
+    db_stats = get_db_stats()
     return SystemStatus(
         status="healthy",
         fastapi="Connected",
         isolation_forest="Ready" if detector.is_fitted else "Initializing",
         version="v3.4-e",
-        active_threats=7,
-        active_incidents=3,
+        active_threats=db_stats.get("threats", 0),
+        active_incidents=db_stats.get("incidents", 0),
         model_contamination=detector.contamination,
         n_estimators=detector.n_estimators
     )

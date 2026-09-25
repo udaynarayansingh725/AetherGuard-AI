@@ -87,9 +87,38 @@ def test_all():
     assert rep["totalLogs"] == 12540
     print("[OK] Report Generation OK:", rep["reportId"])
 
+    print("\n--- 8. Testing POST /api/v1/auth/login ---")
+
+    r = client.post("/api/v1/auth/login", json={"email": "analyst@ibm.security", "password": "password123"})
+    assert r.status_code == 200, f"Login failed: {r.text}"
+    login_data = r.json()
+    assert login_data["status"] == "success"
+    assert login_data["user"]["email"] == "analyst@ibm.security"
+    assert "token" in login_data["access_token"]
+    print("[OK] Auth Login OK:", login_data["user"]["name"], f"({login_data['user']['role']})")
+
+    print("\n--- 9. Testing GET /api/v1/auth/users ---")
+    r = client.get("/api/v1/auth/users")
+    assert r.status_code == 200
+    users = r.json()
+    assert len(users) >= 4
+    print(f"[OK] Auth Users OK ({len(users)} users loaded from DB)")
+
+    print("\n--- 10. Testing POST /api/v1/threats/THR-9021/mitigate ---")
+    r = client.post("/api/v1/threats/THR-9021/mitigate")
+    assert r.status_code == 200
+    mit_res = r.json()
+    assert mit_res["status"] == "success"
+    # Verify in DB that status is Mitigated
+    r_check = client.get("/api/v1/threats/THR-9021")
+    assert r_check.status_code == 200
+    assert r_check.json()["status"] == "Mitigated"
+    print("[OK] Threat Mitigation OK: THR-9021 status updated to 'Mitigated' in DB")
+
     print("\n==========================================")
     print(" ALL BACKEND TESTS PASSED SUCCESSFULLY! ")
     print("==========================================\n")
 
 if __name__ == "__main__":
     test_all()
+

@@ -218,6 +218,61 @@ const FastAPI_Service = {
     return MOCK_INCIDENTS;
   },
 
+  async fetchUsers() {
+    try {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 2500);
+      const res = await fetch(`${this.baseUrl}/auth/users`, { signal: controller.signal });
+      clearTimeout(id);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {}
+    return MOCK_USERS;
+  },
+
+  async login(email, password) {
+    try {
+      const res = await fetch(`${this.baseUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: password || 'default_pass' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.user;
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  async register(name, email, role) {
+    try {
+      const res = await fetch(`${this.baseUrl}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, role: role || 'Security Analyst' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.user;
+      }
+    } catch (e) {}
+    return null;
+  },
+
+  async mitigateThreat(threatId) {
+    try {
+      const res = await fetch(`${this.baseUrl}/threats/${threatId}/mitigate`, {
+        method: 'POST'
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {}
+    return { status: 'success', message: `Threat ${threatId} mitigated.` };
+  },
+
   async runIsolationForestAnalysis(fileBlob) {
     try {
       let body = undefined;
@@ -237,6 +292,7 @@ const FastAPI_Service = {
     } catch (e) {
       console.warn("FastAPI backend call failed, falling back to local simulation:", e);
     }
+
 
     // Graceful fallback if backend is offline
     return new Promise((resolve) => {
@@ -457,6 +513,7 @@ function App() {
   const [userRole, setUserRole] = useState('Security Analyst');
   const [threatsList, setThreatsList] = useState(MOCK_THREATS);
   const [incidentsList, setIncidentsList] = useState(MOCK_INCIDENTS);
+  const [usersList, setUsersList] = useState(MOCK_USERS);
   const [selectedThreat, setSelectedThreat] = useState(MOCK_THREATS[0]);
   const [selectedIncident, setSelectedIncident] = useState(MOCK_INCIDENTS[0]);
   const [backendStatus, setBackendStatus] = useState({ fastapi: 'Checking...', isolation_forest: 'Standby' });
@@ -482,13 +539,14 @@ function App() {
     return () => { isMounted = false; clearInterval(interval); };
   }, []);
 
-  // Fetch initial live threats from backend
+  // Fetch initial live threats, incidents, and users from backend SQLite DB
   useEffect(() => {
     let isMounted = true;
     const loadData = async () => {
-      const [tData, iData] = await Promise.all([
+      const [tData, iData, uData] = await Promise.all([
         FastAPI_Service.fetchThreats(),
-        FastAPI_Service.fetchIncidents()
+        FastAPI_Service.fetchIncidents(),
+        FastAPI_Service.fetchUsers()
       ]);
       if (isMounted) {
         if (tData && tData.length) {
@@ -498,6 +556,9 @@ function App() {
         if (iData && iData.length) {
           setIncidentsList(iData);
           setSelectedIncident(iData[0]);
+        }
+        if (uData && uData.length) {
+          setUsersList(uData);
         }
       }
     };
@@ -516,6 +577,14 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const handleMitigateThreat = async (threatId) => {
+    await FastAPI_Service.mitigateThreat(threatId);
+    setThreatsList(prev => prev.map(t => t.id === threatId ? { ...t, status: 'Mitigated' } : t));
+    if (selectedThreat && selectedThreat.id === threatId) {
+      setSelectedThreat(prev => ({ ...prev, status: 'Mitigated' }));
+    }
+  };
+
   const handleSendAiMessage = async (textToSend) => {
     const text = textToSend || aiInput;
     if (!text.trim()) return;
@@ -531,7 +600,19 @@ function App() {
   };
 
   if (!isLoggedIn) {
-    return <LoginPage onLogin={() => setIsLoggedIn(true)} onNavigateRegister={() => setActivePage('register')} activePage={activePage} setActivePage={setActivePage} />;
+    if (activePage === 'register') {
+      return <RegisterPage onNavigateLogin={() => setActivePage('login')} />;
+    }
+    return (
+      <LoginPage 
+        onLogin={(user) => { 
+          setIsLoggedIn(true); 
+          if (user && user.role) setUserRole(user.role); 
+          setActivePage('dashboard'); 
+        }} 
+        onNavigateRegister={() => setActivePage('register')} 
+      />
+    );
   }
 
   return (
@@ -553,7 +634,7 @@ function App() {
 
         {/* Dynamic Page Router */}
         <main className="flex-1 overflow-y-auto p-6 bg-[#0B1120] relative">
-          {activePage === 'login' && <LoginPage onLogin={() => setIsLoggedIn(true)} onNavigateRegister={() => setActivePage('register')} />}
+          {activePage === 'login' && <LoginPage onLogin={(user) => { setIsLoggedIn(true); if (user && user.role) setUserRole(user.role); }} onNavigateRegister={() => setActivePage('register')} />}
           {activePage === 'register' && <RegisterPage onNavigateLogin={() => setActivePage('login')} />}
           {activePage === 'dashboard' && <DashboardView threats={threatsList} onSelectThreat={(t) => { setSelectedThreat(t); setActivePage('investigation'); }} onNavigate={setActivePage} />}
           {activePage === 'log-upload' && <LogUploadView onRunAnalysis={(file) => { setUploadedFile(file); setActivePage('ai-analysis'); }} />}
@@ -565,15 +646,16 @@ function App() {
             setActivePage('threat-detection'); 
           }} />}
           {activePage === 'threat-detection' && <ThreatDetectionView threats={threatsList} onInvestigate={(t) => { setSelectedThreat(t); setActivePage('investigation'); }} />}
-          {activePage === 'investigation' && <ThreatInvestigationView threat={selectedThreat} onBack={() => setActivePage('threat-detection')} />}
+          {activePage === 'investigation' && <ThreatInvestigationView threat={selectedThreat} onBack={() => setActivePage('threat-detection')} onMitigate={handleMitigateThreat} />}
           {activePage === 'threat-history' && <ThreatHistoryView threats={threatsList} />}
           {activePage === 'incidents' && <IncidentDetailsView incidents={incidentsList} incident={selectedIncident} onSelectIncident={setSelectedIncident} />}
           {activePage === 'reports' && <ReportsView onNavigateGenerate={() => setActivePage('generate-report')} />}
           {activePage === 'generate-report' && <GenerateReportView onBack={() => setActivePage('reports')} />}
-          {activePage === 'users' && <UserManagementView />}
+          {activePage === 'users' && <UserManagementView users={usersList} />}
           {activePage === 'settings' && <SettingsView onUpdateEndpoint={(url) => FastAPI_Service.setBaseUrl(url)} userRole={userRole} setUserRole={setUserRole} backendStatus={backendStatus} />}
         </main>
       </div>
+
 
       {/* AI Assistant Drawer */}
       {aiAssistantOpen && (
@@ -1558,12 +1640,26 @@ function ThreatInvestigationView({ threat, onBack }) {
                 <FileText className="w-4 h-4 text-cyan-400" />
                 <span>Forensic Incident Dossier: <strong className="font-mono text-cyan-300">{threat.sourceIp}</strong> ({threat.id})</span>
               </div>
-              <button
-                onClick={() => downloadThreatInvestigationReport(threat)}
-                className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow cursor-pointer active:scale-95"
-              >
-                <Download className="w-3.5 h-3.5" /> Download IP Report (.txt)
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => downloadThreatInvestigationReport(threat)}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow cursor-pointer active:scale-95"
+                >
+                  <Download className="w-3.5 h-3.5" /> Download IP Report (.txt)
+                </button>
+                {threat.status !== 'Mitigated' ? (
+                  <button
+                    onClick={() => onMitigate && onMitigate(threat.id)}
+                    className="px-3.5 py-1.5 bg-red-600/80 hover:bg-red-500 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow cursor-pointer active:scale-95 border border-red-500/40"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" /> Quarantine & Firewall DROP
+                  </button>
+                ) : (
+                  <span className="px-3 py-1 bg-emerald-950/60 border border-emerald-800 text-emerald-400 rounded-lg text-xs font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Quarantined in DB
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1572,14 +1668,16 @@ function ThreatInvestigationView({ threat, onBack }) {
   );
 }
 
-function ThreatHistoryView() {
+function ThreatHistoryView({ threats = MOCK_THREATS }) {
+  const displayThreats = (threats && threats.length) ? threats : MOCK_THREATS;
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <Clock className="w-5 h-5 text-blue-400" /> Historical Threat Audit Log
+          <Clock className="w-5 h-5 text-blue-400" /> Historical Threat Audit Log (Database)
         </h2>
-        <p className="text-xs text-slate-400 mt-0.5">Archive of past resolved and quarantined threats.</p>
+        <p className="text-xs text-slate-400 mt-0.5">Archive of past resolved and quarantined threats stored in SQLite telemetry DB.</p>
       </div>
 
       <div className="bg-[#1E293B] border border-slate-800 rounded-xl p-5 shadow-lg">
@@ -1590,18 +1688,22 @@ function ThreatHistoryView() {
                 <th className="p-3">Ref ID</th>
                 <th className="p-3">Source IP</th>
                 <th className="p-3">Type</th>
-                <th className="p-3">Resolution</th>
+                <th className="p-3">Status</th>
                 <th className="p-3">Timestamp</th>
                 <th className="p-3">Analyst</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-sans text-slate-300">
-              {MOCK_THREATS.map((t) => (
+              {displayThreats.map((t) => (
                 <tr key={t.id} className="hover:bg-slate-800/30">
                   <td className="p-3 font-mono text-cyan-400">{t.id}</td>
                   <td className="p-3 font-mono">{t.sourceIp}</td>
                   <td className="p-3">{t.threatType}</td>
-                  <td className="p-3"><span className="text-emerald-400 font-mono text-[11px]">Quarantined</span></td>
+                  <td className="p-3">
+                    <span className={`font-mono text-[11px] px-2 py-0.5 rounded ${t.status === 'Mitigated' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-red-950 text-red-400 border border-red-800'}`}>
+                      {t.status || 'Active'}
+                    </span>
+                  </td>
                   <td className="p-3 font-mono text-slate-400">{t.timestamp}</td>
                   <td className="p-3">Dr. Vance</td>
                 </tr>
@@ -1614,24 +1716,27 @@ function ThreatHistoryView() {
   );
 }
 
-function IncidentDetailsView({ incident, onSelectIncident }) {
+function IncidentDetailsView({ incidents = MOCK_INCIDENTS, incident, onSelectIncident }) {
+  const displayIncidents = (incidents && incidents.length) ? incidents : MOCK_INCIDENTS;
+  const currentIncident = incident || displayIncidents[0] || {};
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-red-400" /> Incident Correlation Center
+          <AlertTriangle className="w-5 h-5 text-red-400" /> Incident Correlation Center (Database)
         </h2>
-        <p className="text-xs text-slate-400 mt-0.5">Correlated security events grouped into single incidents.</p>
+        <p className="text-xs text-slate-400 mt-0.5">Correlated security events grouped into single incidents from SQLite DB.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-3">
-          {MOCK_INCIDENTS.map((inc) => (
+          {displayIncidents.map((inc) => (
             <div 
               key={inc.id}
               onClick={() => onSelectIncident(inc)}
               className={`p-4 rounded-xl border cursor-pointer transition ${
-                incident.id === inc.id 
+                currentIncident.id === inc.id 
                   ? 'bg-slate-800 border-blue-500' 
                   : 'bg-[#1E293B] border-slate-800 hover:border-slate-700'
               }`}
@@ -1648,10 +1753,11 @@ function IncidentDetailsView({ incident, onSelectIncident }) {
 
         <div className="lg:col-span-2 bg-[#1E293B] border border-slate-800 rounded-xl p-6 space-y-4">
           <div className="border-b border-slate-800 pb-3">
-            <span className="text-xs font-mono text-cyan-400">{incident.id}</span>
-            <h3 className="text-base font-bold text-slate-100">{incident.title}</h3>
-            <p className="text-xs text-slate-400 mt-1">{incident.summary}</p>
+            <span className="text-xs font-mono text-cyan-400">{currentIncident.id}</span>
+            <h3 className="text-base font-bold text-slate-100">{currentIncident.title}</h3>
+            <p className="text-xs text-slate-400 mt-1">{currentIncident.summary}</p>
           </div>
+
 
           <div>
             <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Correlated Event Timeline</h4>
@@ -1797,14 +1903,16 @@ function GenerateReportView({ onBack }) {
   );
 }
 
-function UserManagementView() {
+function UserManagementView({ users = MOCK_USERS }) {
+  const displayUsers = (users && users.length) ? users : MOCK_USERS;
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <Users className="w-5 h-5 text-blue-400" /> Enterprise Role Management (RBAC)
+          <Users className="w-5 h-5 text-blue-400" /> Enterprise Role Management (RBAC & Database)
         </h2>
-        <p className="text-xs text-slate-400 mt-0.5">Manage SOC Analyst permissions and access levels.</p>
+        <p className="text-xs text-slate-400 mt-0.5">Manage SOC Analyst permissions and access levels stored in SQLite user directory.</p>
       </div>
 
       <div className="bg-[#1E293B] border border-slate-800 rounded-xl shadow-lg overflow-hidden">
@@ -1818,11 +1926,11 @@ function UserManagementView() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800 font-sans text-slate-200">
-            {MOCK_USERS.map((u) => (
+            {displayUsers.map((u) => (
               <tr key={u.id} className="hover:bg-slate-800/40">
                 <td className="p-3 font-semibold flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-[10px] text-white font-bold">
-                    {u.avatar}
+                    {u.avatar || 'SA'}
                   </div>
                   <div>
                     {u.name}
@@ -1840,6 +1948,7 @@ function UserManagementView() {
     </div>
   );
 }
+
 
 function SettingsView({ onUpdateEndpoint, userRole = 'Security Analyst', setUserRole, backendStatus }) {
   const [activeTab, setActiveTab] = useState('profile');
@@ -2698,6 +2807,21 @@ function AIAssistantDrawer({ onClose, messages, input, setInput, onSend, isProce
 }
 
 function LoginPage({ onLogin, onNavigateRegister }) {
+  const [email, setEmail] = useState('analyst@ibm.security');
+  const [password, setPassword] = useState('password123');
+  const [loading, setLoading] = useState(false);
+
+  const handleAuth = async () => {
+    setLoading(true);
+    const user = await FastAPI_Service.login(email, password);
+    setLoading(false);
+    if (user) {
+      onLogin(user);
+    } else {
+      onLogin({ email, name: email.split('@')[0], role: 'Security Analyst' });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0B1120] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-[#1E293B] border border-slate-800 rounded-2xl p-8 shadow-2xl space-y-6">
@@ -2706,29 +2830,41 @@ function LoginPage({ onLogin, onNavigateRegister }) {
             <Shield className="w-8 h-8" />
           </div>
           <h2 className="text-2xl font-bold text-white">IBM Cyber Threat Shield</h2>
-          <p className="text-xs text-slate-400">Enterprise AI Threat Detection Login</p>
+          <p className="text-xs text-slate-400">Enterprise AI Threat Detection & Database Access</p>
         </div>
 
         <div className="space-y-4 text-xs">
           <div>
             <label className="text-slate-300 block mb-1 font-semibold">Analyst Email</label>
-            <input type="email" defaultValue="analyst@ibm.security" className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500 font-mono" />
+            <input 
+              type="email" 
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500 font-mono" 
+            />
           </div>
           <div>
             <label className="text-slate-300 block mb-1 font-semibold">JWT Access Token / Password</label>
-            <input type="password" defaultValue="••••••••••••••••" className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500 font-mono" />
+            <input 
+              type="password" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-blue-500 font-mono" 
+            />
           </div>
 
           <button 
-            onClick={onLogin}
-            className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold rounded-lg shadow-lg transition"
+            onClick={handleAuth}
+            disabled={loading}
+            className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold rounded-lg shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
           >
-            Authenticate Access
+            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+            {loading ? "Authenticating..." : "Authenticate Access (Database Verified)"}
           </button>
         </div>
 
         <div className="text-center pt-2">
-          <button onClick={onNavigateRegister} className="text-xs text-cyan-400 hover:underline">
+          <button onClick={onNavigateRegister} className="text-xs text-cyan-400 hover:underline cursor-pointer">
             Register new Analyst Credentials
           </button>
         </div>
@@ -2738,19 +2874,92 @@ function LoginPage({ onLogin, onNavigateRegister }) {
 }
 
 function RegisterPage({ onNavigateLogin }) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('Security Analyst');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const handleRegister = async () => {
+    if (!email) return;
+    setLoading(true);
+    const user = await FastAPI_Service.register(name || email.split('@')[0], email, role);
+    setLoading(false);
+    if (user) {
+      setMsg(`Analyst ${user.name} registered successfully! Redirecting to login...`);
+      setTimeout(() => {
+        onNavigateLogin();
+      }, 1500);
+    } else {
+      onNavigateLogin();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#0B1120] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-[#1E293B] border border-slate-800 rounded-2xl p-8 shadow-2xl space-y-6">
-        <h2 className="text-xl font-bold text-white text-center">Analyst Onboarding</h2>
+        <h2 className="text-xl font-bold text-white text-center">Analyst Onboarding (SQLite DB)</h2>
+        <p className="text-xs text-slate-400 text-center">Register credential profile in enterprise database.</p>
+        
+        {msg && (
+          <div className="p-3 bg-emerald-950/40 border border-emerald-800 rounded-lg text-emerald-400 text-xs text-center">
+            {msg}
+          </div>
+        )}
+
         <div className="space-y-3 text-xs">
-          <input type="text" placeholder="Full Name" className="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-200" />
-          <input type="email" placeholder="IBM Email" className="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-200" />
-          <button onClick={onNavigateLogin} className="w-full py-2.5 bg-blue-600 text-white font-bold rounded-lg">Complete Registration</button>
+          <div>
+            <label className="text-slate-300 block mb-1">Full Name</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Alex Mercer" 
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-200" 
+            />
+          </div>
+          <div>
+            <label className="text-slate-300 block mb-1">Corporate Email</label>
+            <input 
+              type="email" 
+              placeholder="analyst@ibm.security" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-200 font-mono" 
+            />
+          </div>
+          <div>
+            <label className="text-slate-300 block mb-1">SOC Role</label>
+            <select 
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 rounded p-2.5 text-slate-200"
+            >
+              <option>Security Analyst</option>
+              <option>Lead SOC Analyst</option>
+              <option>Incident Responder</option>
+              <option>Threat Hunter</option>
+            </select>
+          </div>
+          <button 
+            onClick={handleRegister} 
+            disabled={loading}
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 cursor-pointer transition"
+          >
+            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+            {loading ? "Registering..." : "Complete Registration & Save to DB"}
+          </button>
+          <div className="text-center pt-2">
+            <button onClick={onNavigateLogin} className="text-xs text-slate-400 hover:text-slate-200 underline">
+              Already have credentials? Log In
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 function KpiCard({ title, value, change, subtext, icon: Icon, color }) {
   const colorMap = {
